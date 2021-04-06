@@ -13,6 +13,8 @@ import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { Apollo, gql, QueryRef } from 'apollo-angular';
 import client from 'apollo-angular';
 import { Subscription } from 'rxjs';
+import { InMemoryCache } from '@apollo/client/cache';
+import { ApolloClient } from '@apollo/client/core';
 
 const GET_PLAN = gql`
   query planByProject($projectID:Long){
@@ -179,7 +181,7 @@ const ACCEPTED_STUDENTS = gql`
 const UPDATE_PLAN = gql`
   mutation editPlan($projectPlan:ProjectPlanInputType){
     projectPlanMutation{
-      editProjectPlan(projectPlan:$projectPlan)
+      editProjectPlan(plan:$projectPlan)
     }
   }
 `;
@@ -217,7 +219,6 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
   phaseForEdit: Phase;
   bsConfig: Partial<BsDatepickerConfig>;
   name: string;
-  subs: Subscription
 
   //attributes of project plan
   students: Student[];
@@ -226,6 +227,8 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
   duration: number;
   note: string;
   private query: QueryRef<any>;
+  private queryProject: Subscription;
+  private subs: Subscription;
 
 
   constructor(private projectPlanService: ProjectPlanService,
@@ -233,20 +236,20 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
               private router: Router,
               public modalService: BsModalService,
               private alertify: AlertifyService,
-              private authService: AuthService,
               private apollo: Apollo) { }
 
-              ngOnDestroy(){
-
+  ngOnDestroy(){
     this.subs.unsubscribe();
-              }
+    this.queryProject.unsubscribe();
+  }
   ngOnInit() {
     // client.reset();
     this.query = this.apollo.watchQuery({
       query: PROJECT,
+      pollInterval: 0,
       variables: {projectID: this.route.snapshot.paramMap.get('id')}
     });
-    this.query.valueChanges.subscribe(result => {
+    this.queryProject = this.query.valueChanges.subscribe(result => {
       if(result !== undefined && result !== null){
         this.project = JSON.parse(JSON.stringify(result.data.projectQuery.projectById), omitTypename) as Project;
         this.minDate = new Date(this.project.projectProposal.startDateProjectProposal);
@@ -261,6 +264,7 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
 
     this.query = this.apollo.watchQuery({
       query: ACCEPTED_STUDENTS,
+      pollInterval: 0,
       variables: {projectID: this.route.snapshot.paramMap.get('id')}
     });
     this.query.valueChanges.subscribe(result => {
@@ -270,27 +274,28 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
 
     this.query = this.apollo.watchQuery({
       query: PROJECT_PLAN,
+      pollInterval: 0,
+      fetchPolicy: 'no-cache',
       variables: {projectID: this.route.snapshot.paramMap.get('id')}
     });
     this.subs = this.query.valueChanges.subscribe(result => {
+      // this.clearing();
+      console.log("Ucitao plan iz backa");
       if(result !== undefined && result !== null){
-        this.projectPlan = JSON.parse(JSON.stringify(result.data.planQuery.planByProject.projectPlan), omitTypename) as ProjectPlan;
-        // this.students = JSON.parse(JSON.stringify(result.data.planQuery.planByProject.students), omitTypename) as Student[];
-        if (this.projectPlan != null) {
-          this.planForEdit = this.projectPlan as ProjectPlan;
-          // this.setPlanForEdit();
-          this.fill();
+        if(result.data.planQuery.planByProject !== null) {
+          this.projectPlan = JSON.parse(JSON.stringify(result.data.planQuery.planByProject.projectPlan), omitTypename) as ProjectPlan;
+          if (this.projectPlan != null) {
+            this.planForEdit = this.projectPlan as ProjectPlan;
+            this.fill();
+          }
+        } else{
+          this.projectPlan = null;
         }
+
       }
     }, error => {
       this.projectPlan = null;
     });
-    // this.query.refetch();
-    // this.route.data.subscribe( data => {
-      // this.project = data['project'];
-      // this.students = data['students'];
-      // this.projectPlan = data['projectPlan'];
-    // });
   }
 
   fill() {
@@ -321,20 +326,18 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
         projectID: this.project.projectID
       };
 
-      console.log(this.projectPlan);
       this.apollo.mutate({
         mutation: INSERT_PLAN,
         variables: {
           plan: this.projectPlan
         },
-        refetchQueries: [
-          {
-            query: PROJECT_PLAN,
-            variables: {plan: this.projectPlan}
-          },
-        ],
+        // refetchQueries: [
+        //   {
+        //     query: PROJECT_PLAN,
+        //     variables: {plan: this.projectPlan}
+        //   },
+        // ],
       }).subscribe(({ data }) => {
-        console.log(data);
         this.alertify.success('Успешно сте унели план пројекта!');
         this.router.navigate(['/projects/', this.project.projectID]);
       },(error) => {
@@ -355,7 +358,6 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
   }
 
   edit() {
-    console.log(this.phases);
     if (title !== undefined && this.duration !== undefined && this.estimatedStartDate !== undefined
       && this.phases !== undefined && this.phases !== null) {
         if (this.isPlanEdited()) {
@@ -369,10 +371,11 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
             variables: {
               projectPlan: this.planForEdit
             },
-            refetchQueries:[{
-              query: PROJECT_PLAN,
-              variables: {projectID: this.route.snapshot.paramMap.get('id')}
-            }],
+
+            // refetchQueries:[{
+            //   query: PROJECT_PLAN,
+            //   variables: {projectID: this.route.snapshot.paramMap.get('id')}
+            // }],
           }).subscribe(({ data }) => {
             this.alertify.success('Успешно сте изменили план пројекта!');
             this.router.navigate(['/projects/', this.project.projectID]);
@@ -427,6 +430,7 @@ export class ProjectPlanComponent implements OnInit, OnDestroy {
     //   this.alertify.error('Дошло је до грешке приликом брисања плана пројекта!');
     // });
   }
+
   isPlanEdited() {
     if ( this.duration === this.projectPlan.duration && this.note === this.projectPlan.note &&
       !this.checkDate(this.estimatedStartDate, new Date(this.projectPlan.estimatedStartDate))) {

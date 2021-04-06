@@ -22,8 +22,6 @@ export class EmployeeAuthComponent implements OnInit {
     if (this.authService.loggedIn()) {
       this.alertify.error('Vec ste ulogovani!');
     }
-    console.log(this.user.password);
-    console.log(this.user.username);
     this.authService.login(this.user).subscribe(next => {
       this.alertify.success('Успешно сте се улоговали.');
       this.router.navigate(['/projects']);

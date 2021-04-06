@@ -8,6 +8,7 @@ import { Application } from 'src/app/_model/application';
 import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
 import { StudentService } from 'src/app/_services/student.service';
 import { max, min } from 'rxjs/operators';
+import { SignalRService } from 'src/app/_services/signalr.service';
 
 @Component({
   selector: 'app-studentApplication',
@@ -33,7 +34,8 @@ export class StudentApplicationComponent implements OnInit {
               private route: ActivatedRoute,
               private alertify: AlertifyService,
               private modalService: BsModalService,
-              private studentService: StudentService) { }
+              private studentService: StudentService,
+              private signalRService: SignalRService) { }
 
   ngOnInit() {
     this.route.data.subscribe( data => {
@@ -94,6 +96,7 @@ export class StudentApplicationComponent implements OnInit {
       };
       this.applicationService.insert(app).subscribe(() => {
         this.alertify.success('Успешно сачувана пријава');
+        this.signalRService.askServer(this.project.projectProposal.name);
       }, error => {
         this.alertify.message('Студент се већ пријавио за рад на одабраном пројекту.');
       });

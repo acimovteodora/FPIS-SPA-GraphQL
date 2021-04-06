@@ -129,8 +129,8 @@
         </div>
 
         <div class="form-group buttons">
-          <button type="submit" class="btn btn-primary" (click)="save()" *ngIf="new">Сачувај фазу</button>
-          <button type="submit" class="btn btn-primary" (click)="edit()" *ngIf="!new">Измени фазу</button>
+          <button type="button" class="btn btn-primary" (click)="save()" *ngIf="new">Сачувај фазу</button>
+          <button type="button" class="btn btn-primary" (click)="edit()" *ngIf="!new">Измени фазу</button>
           <button type="button" class="btn btn-primary" aria-label="Close" (click)="back()">Одустани</button>
         </div>
       </form>
@@ -181,7 +181,7 @@
           </table>
         </div>
         <div class="form-group buttons">
-          <button type="submit" class="btn btn-primary" (click)="addAssignment()">Додај</button>
+          <button type="button" class="btn btn-primary" (click)="addAssignment()">Додај</button>
           <button type="button" class="btn btn-primary" aria-label="Close"  (click)="modalRef.hide()">Одустани</button>
         </div>
       </form>

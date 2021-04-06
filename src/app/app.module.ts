@@ -34,17 +34,10 @@ import { EmployeeAuthComponent } from './_start-page/employeeAuth/employeeAuth.c
 import { NavComponent } from './nav/nav.component';
 import { GraphQLModule } from './graphql.module';
 import { defaultDataIdFromObject } from '@apollo/client/core';
+import { SignalRService } from './_services/signalr.service';
 
 const myCache = new InMemoryCache({
   resultCaching: false,
-  // dataIdFromObject(responseObject) {
-  //   switch (responseObject.__typename) {
-  //     // case 'ProjectPlanQuery': return `ProjectPlanQuery:${responseObject.planByProject["projectId"]}`;
-  //     case 'ProjectPlanType': return `ProjectPlanType:${responseObject.projectID}:${responseObject.email}`;
-  //     case 'EngagementType': return `ProjectPlanType:${responseObject.phaseID}:${responseObject.studentID}`;
-  //     default: return defaultDataIdFromObject(responseObject);
-  //   }
-  // }
   typePolicies: {
     ProjectPlanQuery: {
       keyFields:["planByProject",["projectID"]]
@@ -53,7 +46,7 @@ const myCache = new InMemoryCache({
       keyFields:["projectById",["projectID"]]
     },
     ProjectPlanMutation: {
-      keyFields:["editProjectPlan"]
+      keyFields:[["plan"]]
     },
     StudentQuery: {
       keyFields:["acceptedStudents"]
@@ -113,6 +106,7 @@ const myCache = new InMemoryCache({
     ProjectPlanResolver,
     StudentsResolver,
     AlertifyService,
+    SignalRService,
     {
       provide: APOLLO_OPTIONS,
       useFactory: (httpLink: HttpLink) => {
